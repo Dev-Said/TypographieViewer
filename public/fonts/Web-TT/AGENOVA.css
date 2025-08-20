@@ -1,0 +1,11 @@
+/* Webfont: AGENOVA-Regular */@font-face {
+    font-family: 'AGENOVA';
+    src: url('AGENOVA.eot'); /* IE9 Compat Modes */
+    src: url('AGENOVA.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+         url('AGENOVA.woff') format('woff'), /* Modern Browsers */
+         url('AGENOVA.ttf') format('truetype'); /* Safari, Android, iOS */
+             font-style: normal;
+    font-weight: normal;
+    text-rendering: optimizeLegibility;
+}
+

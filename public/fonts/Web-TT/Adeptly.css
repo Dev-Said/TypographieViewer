@@ -1,0 +1,12 @@
+/* Webfont: Adeptly-Regular */@font-face {
+    font-family: 'Adeptly';
+    src: url('Adeptly.eot'); /* IE9 Compat Modes */
+    src: url('Adeptly.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+         url('Adeptly.woff') format('woff'), /* Modern Browsers */
+         url('Adeptly.woff2') format('woff2'), /* Modern Browsers */
+         url('Adeptly.ttf') format('truetype'); /* Safari, Android, iOS */
+             font-style: normal;
+    font-weight: normal;
+    text-rendering: optimizeLegibility;
+}
+
