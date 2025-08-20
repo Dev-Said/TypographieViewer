@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useImperativeHandle, forwardRef } from 'react';
 
 const FontGallery = () => {
   const [fonts, setFonts] = useState([]);
@@ -10,6 +10,9 @@ const FontGallery = () => {
   const [selectedFontIndex, setSelectedFontIndex] = useState(0); // Pour la vue comparaison
   const [fontSize, setFontSize] = useState(24); // Taille de police pour la vue comparaison
   const [comparisonText, setComparisonText] = useState('Portez ce vieux whisky au juge blond qui fume'); // Texte pour la vue comparaison
+  const fontListRef = useRef(null); // Référence pour la liste des polices
+  const scrollPositionRef = useRef(0); // Mémoriser la position de scroll
+
 
   // Charger les polices depuis fonts.json
   useEffect(() => {
@@ -44,17 +47,19 @@ const FontGallery = () => {
       if (activeTab === 'comparison' && fonts.length > 0 && !selectedFont) {
         if (event.key === 'ArrowUp') {
           event.preventDefault();
-          setSelectedFontIndex(prev => prev > 0 ? prev - 1 : fonts.length - 1);
+          const newIndex = selectedFontIndex > 0 ? selectedFontIndex - 1 : fonts.length - 1;
+          handleFontSelection(newIndex);
         } else if (event.key === 'ArrowDown') {
           event.preventDefault();
-          setSelectedFontIndex(prev => prev < fonts.length - 1 ? prev + 1 : 0);
+          const newIndex = selectedFontIndex < fonts.length - 1 ? selectedFontIndex + 1 : 0;
+          handleFontSelection(newIndex);
         }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedFont, activeTab, fonts.length]);
+  }, [selectedFont, activeTab, fonts.length, selectedFontIndex]);
 
   // Composant pour la vue détaillée d'une police
   const FontDetailView = ({ font, onClose }) => {
@@ -263,7 +268,80 @@ const FontGallery = () => {
     );
   };
 
-  // Composant pour la vue de comparaison
+  // Fonction pour sélectionner une police en préservant la position de scroll
+  const handleFontSelection = useCallback((index) => {
+    // Sauvegarder la position de scroll actuelle
+    if (fontListRef.current) {
+      scrollPositionRef.current = fontListRef.current.scrollTop;
+    }
+    
+    // Changer la police sélectionnée (déclenche un re-render)
+    setSelectedFontIndex(index);
+  }, []);
+
+    // useEffect pour restaurer la position de scroll après re-render
+  useEffect(() => {
+    if (fontListRef.current && scrollPositionRef.current > 0) {
+      fontListRef.current.scrollTop = scrollPositionRef.current;
+    }
+  }, [selectedFontIndex]); // Se déclenche après chaque changement de sélection
+
+  // Composant simple pour la liste des polices
+  const FontListPanel = React.memo(({ fonts, selectedIndex, onSelect }) => {
+    
+    const FontListItem = ({ font, index, isSelected, onSelect }) => {
+      return (
+        <div
+          onClick={() => onSelect(index)}
+          className={`p-3 rounded-lg cursor-pointer transition-all mb-2 ${
+            isSelected
+              ? 'bg-blue-100 border-2 border-blue-300 shadow-sm'
+              : 'bg-white hover:bg-gray-100 border border-gray-200'
+          }`}
+        >
+          <div className="font-medium text-sm text-gray-800 mb-1">
+            {font.name}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">
+              {font.file.split('.').pop().toUpperCase()}
+            </span>
+            {font.folder && (
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                📁 {font.folder}
+              </span>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div 
+        ref={fontListRef}
+        className="w-1/3 border-r bg-gray-50 overflow-y-auto"
+      >
+        <div className="p-4 border-b bg-white sticky top-0 z-10">
+          <h3 className="font-semibold text-gray-800 mb-2">Polices disponibles</h3>
+          <p className="text-xs text-gray-500">Utilisez ↑↓ pour naviguer</p>
+        </div>
+        
+        <div className="p-2">
+          {fonts.map((font, index) => (
+            <FontListItem
+              key={`${font.name}-${index}`}
+              font={font}
+              index={index}
+              isSelected={index === selectedIndex}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  });
+
+  // Composant pour la vue de comparaison (SANS la liste)
   const ComparisonView = () => {
     const currentFont = fonts[selectedFontIndex];
     
@@ -272,7 +350,7 @@ const FontGallery = () => {
     const fontFamilyName = `font-${currentFont.name}`;
     
     return (
-      <div className="flex h-[calc(100vh-180px)] bg-white rounded-lg shadow-sm overflow-hidden">
+      <>
         {/* Style dynamique pour la police courante */}
         <style>
           {`
@@ -287,43 +365,7 @@ const FontGallery = () => {
           `}
         </style>
         
-        {/* Liste des polices à gauche */}
-        <div className="w-1/3 border-r bg-gray-50 overflow-y-auto">
-          <div className="p-4 border-b bg-white">
-            <h3 className="font-semibold text-gray-800 mb-2">Polices disponibles</h3>
-            <p className="text-xs text-gray-500">Utilisez ↑↓ pour naviguer</p>
-          </div>
-          
-          <div className="p-2">
-            {fonts.map((font, index) => (
-              <div
-                key={index}
-                onClick={() => setSelectedFontIndex(index)}
-                className={`p-3 rounded-lg cursor-pointer transition-all mb-2 ${
-                  index === selectedFontIndex
-                    ? 'bg-blue-100 border-2 border-blue-300 shadow-sm'
-                    : 'bg-white hover:bg-gray-100 border border-gray-200'
-                }`}
-              >
-                <div className="font-medium text-sm text-gray-800 mb-1">
-                  {font.name}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">
-                    {font.file.split('.').pop().toUpperCase()}
-                  </span>
-                  {font.folder && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                      📁 {font.folder}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Zone de prévisualisation à droite */}
+        {/* Zone de prévisualisation (partie droite) */}
         <div className="flex-1 flex flex-col">
           {/* En-tête avec contrôles */}
           <div className="p-6 border-b bg-white">
@@ -417,7 +459,7 @@ const FontGallery = () => {
             </div>
           </div>
         </div>
-      </div>
+      </>
     );
   };
 
@@ -590,7 +632,16 @@ const FontGallery = () => {
                 </code>
               </div>
             ) : (
-              <ComparisonView />
+              <div className="flex h-[calc(100vh-180px)] bg-white rounded-lg shadow-sm overflow-hidden">
+                {/* Liste avec restauration automatique de la position de scroll */}
+                <FontListPanel
+                  fonts={fonts}
+                  selectedIndex={selectedFontIndex}
+                  onSelect={handleFontSelection}
+                />
+                {/* Vue de comparaison qui se re-rend */}
+                <ComparisonView />
+              </div>
             )}
           </>
         )}
@@ -615,5 +666,62 @@ const FontGallery = () => {
     </div>
   );
 };
+
+// Composant FontListPanel complètement indépendant
+const FontListPanel = React.memo(({ fonts, selectedIndex, onSelect }) => {
+  console.log('FontListPanel render'); // Pour debug - on devrait voir ça qu'une fois
+  
+  const FontListItem = React.memo(({ font, index, isSelected, onSelect }) => {
+    const handleClick = useCallback(() => {
+      onSelect(index);
+    }, [index, onSelect]);
+
+    return (
+      <div
+        onClick={handleClick}
+        className={`p-3 rounded-lg cursor-pointer transition-all mb-2 ${
+          isSelected
+            ? 'bg-blue-100 border-2 border-blue-300 shadow-sm'
+            : 'bg-white hover:bg-gray-100 border border-gray-200'
+        }`}
+      >
+        <div className="font-medium text-sm text-gray-800 mb-1">
+          {font.name}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500">
+            {font.file.split('.').pop().toUpperCase()}
+          </span>
+          {font.folder && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+              📁 {font.folder}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  });
+
+  return (
+    <div className="w-1/3 border-r bg-gray-50 overflow-y-auto">
+      <div className="p-4 border-b bg-white sticky top-0 z-10">
+        <h3 className="font-semibold text-gray-800 mb-2">Polices disponibles</h3>
+        <p className="text-xs text-gray-500">Utilisez ↑↓ pour naviguer</p>
+      </div>
+      
+      <div className="p-2">
+        {fonts.map((font, index) => (
+          <FontListItem
+            key={`${font.name}-${index}`}
+            font={font}
+            index={index}
+            isSelected={index === selectedIndex}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+    </div>
+  );
+});
 
 export default FontGallery;
