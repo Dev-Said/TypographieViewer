@@ -31,11 +31,11 @@ yarn-error.log*
 Thumbs.db
 
 # Fonts (optionnel - décommentez si vous ne voulez pas partager vos polices)
-# /public/fonts/*.ttf
-# /public/fonts/*.otf
-# /public/fonts/*.woff
-# /public/fonts/*.woff2
-# /public/fonts/*.eot
+/public/fonts/*.ttf
+/public/fonts/*.otf
+/public/fonts/*.woff
+/public/fonts/*.woff2
+/public/fonts/*.eot
 
 # Fonts JSON (sera régénéré)
 /public/fonts.json
