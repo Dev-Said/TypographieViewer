@@ -14,6 +14,40 @@ const FontGallery = () => {
   const scrollPositionRef = useRef(0); // Mémoriser la position de scroll
 
 
+  // Fonction pour dédupliquer les polices par nom en gardant le meilleur format
+  const deduplicateFonts = (fontsArray) => {
+    const fontMap = new Map();
+    
+    // Ordre de priorité des formats (du meilleur au moins bon)
+    const formatPriority = {
+      'woff2': 1,
+      'woff': 2, 
+      'ttf': 3,
+      'otf': 4,
+      'eot': 5
+    };
+    
+    fontsArray.forEach(font => {
+      const fontName = font.name;
+      const extension = font.file.split('.').pop().toLowerCase();
+      const priority = formatPriority[extension] || 999;
+      
+      if (!fontMap.has(fontName)) {
+        // Première occurrence de cette police
+        fontMap.set(fontName, { ...font, priority });
+      } else {
+        // Cette police existe déjà, garder celle avec la meilleure priorité
+        const existingFont = fontMap.get(fontName);
+        if (priority < existingFont.priority) {
+          fontMap.set(fontName, { ...font, priority });
+        }
+      }
+    });
+    
+    // Retourner les polices sans la propriété priority
+    return Array.from(fontMap.values()).map(({ priority, ...font }) => font);
+  };
+
   // Charger les polices depuis fonts.json
   useEffect(() => {
     const loadFonts = async () => {
@@ -23,7 +57,10 @@ const FontGallery = () => {
           throw new Error('Impossible de charger fonts.json');
         }
         const fontsData = await response.json();
-        setFonts(fontsData);
+        
+        // Dédupliquer les polices avant de les stocker
+        const uniqueFonts = deduplicateFonts(fontsData);
+        setFonts(uniqueFonts);
         setLoading(false);
       } catch (err) {
         setError(err.message);
